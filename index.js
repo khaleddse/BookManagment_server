@@ -1,26 +1,23 @@
 const express = require("express");
-const { pool } = require("./utils/db");
-const app = express();
+const { sequelize } = require("./utils/db");
+const bookRoutes = require("./routes/bookRoutes");
+const errorHandler = require("./middlewares/errorHandler");
+const seedBooks = require("./seeders/seed-books");
+
 require("dotenv").config();
 
-const port = process.env.APP_PORT || 3002;
+const app = express();
+app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+app.use("/api/books", bookRoutes);
 
-app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`);
-});
+app.use(errorHandler);
 
-app.get("/db-test", async (req, res) => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query("SELECT NOW()");
-    client.release();
-    res.send(`Database connected at: ${result.rows[0].now}`);
-  } catch (err) {
-    console.error("Error connecting to database", err);
-    res.status(500).send("Error connecting to database");
-  }
+const PORT = process.env.APP_PORT || 3000;
+
+sequelize.sync({ force: false }).then(async () => {
+  await seedBooks(); // seed default data if empty
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
 });
