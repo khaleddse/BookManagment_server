@@ -1,11 +1,25 @@
 const Book = require("../models/book");
+const { Op } = require("sequelize");
 
-// Get all books
 exports.getAllBooks = async (req, res) => {
   try {
-    const books = await Book.findAll();
+    const { date } = req.query;
+    let whereCondition = {};
+
+    if (date) {
+      whereCondition.createdAt = {
+        [Op.gte]: new Date(date),
+      };
+    }
+
+    const books = await Book.findAll({
+      where: whereCondition,
+      order: [["createdAt", "DESC"]],
+    });
+
     res.json(books);
   } catch (err) {
+    console.error("Failed to fetch books:", err);
     res.status(500).json({ error: "Failed to fetch books" });
   }
 };
@@ -42,12 +56,10 @@ exports.updateBook = async (req, res) => {
 
     // Validation check for at least one field
     if (!title && !author && !createdBy) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "At least one field (title, author, or createdBy) is required for update.",
-        });
+      return res.status(400).json({
+        message:
+          "At least one field (title, author, or createdBy) is required for update.",
+      });
     }
 
     // Update fields only if they exist in the request body
